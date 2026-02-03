@@ -306,6 +306,7 @@ function renderDrawerCart() {
   if (totalInput) totalInput.value = total;
 }
 
+
 // === NAVEGACIÓN ===
 function show(id) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));

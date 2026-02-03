@@ -163,6 +163,7 @@ header img {
   display: block;
 }
 
+
 /* En desktop grande aún más control */
 @media (min-width: 1024px) {
   header img {
