@@ -387,3 +387,17 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
+/* === Alineación uniforme de campos === */
+.grid > div,
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: #444;
+}

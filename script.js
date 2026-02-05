@@ -464,8 +464,7 @@ document.getElementById("pedidoForm").addEventListener("submit", async e => {
   // Dirección final (dirección + tipoLugar)
   // ============================================================
   const direccion = document.getElementById("direccion")?.value.trim() || "";
-  const tipoLugar =
-    document.querySelector('input[name="tipoLugar"]:checked')?.value || "";
+  const tipoLugar = document.getElementById("tipoLugar")?.value || "";
   const direccionFinal = tipoLugar ? `${direccion} - ${tipoLugar}` : direccion;
 
   formData.set("direccion", direccionFinal);
