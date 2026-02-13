@@ -338,11 +338,17 @@ let lookupTimer = null;
 document.getElementById("identificacion").addEventListener("input", e => {
   clearTimeout(lookupTimer);
   const val = e.target.value.trim();
+  
+  // Si el campo se vacía, solo quitamos el badge, no borramos los datos escritos
   if (!val) {
     setClienteBadge(null);
     return;
   }
-  lookupTimer = setTimeout(() => buscarCliente(val), 300);
+
+  // Solo disparamos la búsqueda si el usuario ha escrito al menos 5 dígitos
+  if (val.length >= 5) {
+    lookupTimer = setTimeout(() => buscarCliente(val), 500); 
+  }
 });
 
 async function buscarCliente(ident) {
@@ -353,17 +359,20 @@ async function buscarCliente(ident) {
     if (data && data.found) {
       setClienteBadge(true);
 
-      // autocompletar con los nombres reales que devuelve el Apps Script
+      // Autocompletar solo si se encuentra el cliente
       document.getElementById("primerNombre").value = data.primerNombre || "";
       document.getElementById("primerApellido").value = data.primerApellido || "";
       document.getElementById("telefono").value = data.telefono || "";
-      document.getElementById("email").value = data.email || "";
-      if (document.getElementById("email")) {
-        document.getElementById("email").value = data.email || "";
+      
+      const emailField = document.getElementById("email");
+      if (emailField) {
+        emailField.value = data.email || "";
       }
     } else {
+      // SI NO SE ENCUENTRA:
       setClienteBadge(false);
-      limpiarCliente(false);
+      // OPTIMIZACIÓN: Se elimina limpiarCliente(false) para no borrar 
+      // lo que el usuario haya escrito manualmente.
     }
   } catch (err) {
     console.error("Error al buscar cliente:", err);
@@ -582,65 +591,68 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // === AUTO-RELLENO PARA "ENTREGA EN TIENDA" ===
-document.querySelectorAll('input[name="tipoLugar"]').forEach(radio => {
-  radio.addEventListener("change", () => {
+(() => {
+  const tipoLugarSelect = document.getElementById("tipoLugar");
+  if (!tipoLugarSelect) return;
 
-    const tipo = document.querySelector('input[name="tipoLugar"]:checked')?.value;
+  const VALOR_TIENDA = "Entrega En Tienda";
+  let entregaAutofill = false;
 
-    const destinatario = document.getElementById("destinatario");
-    const telefonoDestino = document.getElementById("telefonoDestino");
-    const direccion = document.getElementById("direccion");
-    const barrioSel = document.getElementById("barrio");
+  const destinatario = document.getElementById("destinatario");
+  const telefonoDestino = document.getElementById("telefonoDestino");
+  const direccion = document.getElementById("direccion");
+  const barrioSel = document.getElementById("barrio");
 
-    // 🔥 Valor estandarizado único
-    const VALOR_TIENDA = "Entrega En Tienda";
+  const aplicarEntregaTienda = () => {
+    const nombre = document.getElementById("primerNombre").value.trim();
+    const apellido = document.getElementById("primerApellido").value.trim();
+    const telefono = document.getElementById("telefono").value.trim();
 
-    if (tipo === VALOR_TIENDA) {
+    if (destinatario) destinatario.value = `${nombre} ${apellido}`.trim();
+    if (telefonoDestino) telefonoDestino.value = telefono;
+    if (direccion) direccion.value = VALOR_TIENDA;
 
-      // Obtener datos del cliente
-      const nombre = document.getElementById("primerNombre").value.trim();
-      const apellido = document.getElementById("primerApellido").value.trim();
-      const telefono = document.getElementById("telefono").value.trim();
-
-      // Autollenar
-      destinatario.value = `${nombre} ${apellido}`.trim();
-      telefonoDestino.value = telefono;
-      direccion.value = VALOR_TIENDA;
-
-      // Si no existe el option → lo creamos
+    if (barrioSel) {
       if (![...barrioSel.options].some(o => o.value === VALOR_TIENDA)) {
         const opt = document.createElement("option");
         opt.value = VALOR_TIENDA;
         opt.textContent = VALOR_TIENDA;
         barrioSel.insertBefore(opt, barrioSel.firstChild);
       }
-
-      // Seleccionarlo SIEMPRE
       barrioSel.value = VALOR_TIENDA;
+    }
 
-      // Domicilio = 0
-      state.domicilio = 0;
-      renderDrawerCart();
+    state.domicilio = 0;
+    renderDrawerCart();
+    entregaAutofill = true;
+  };
 
-      // Habilitar / deshabilitar campos (si deseas bloquearlos déjame saber)
-      destinatario.disabled = false;
-      telefonoDestino.disabled = false;
-      direccion.disabled = false;
-      barrioSel.disabled = false;
+  const limpiarEntregaTienda = () => {
+    if (!entregaAutofill) return;
+    if (telefonoDestino) telefonoDestino.value = "";
+    if (direccion) direccion.value = "";
+    if (barrioSel) barrioSel.value = "";
+    entregaAutofill = false;
+  };
 
+  tipoLugarSelect.addEventListener("change", () => {
+    if (tipoLugarSelect.value === VALOR_TIENDA) {
+      aplicarEntregaTienda();
     } else {
-      // Si NO es tienda → resetear
-      destinatario.disabled = false;
-      telefonoDestino.disabled = false;
-      direccion.disabled = false;
-      barrioSel.disabled = false;
-
-      telefonoDestino.value = "";
-      direccion.value = "";
-      barrioSel.value = "";
+      limpiarEntregaTienda();
     }
   });
-});
+
+  ["primerNombre", "primerApellido", "telefono"].forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener("input", () => {
+      if (tipoLugarSelect.value === VALOR_TIENDA) {
+        aplicarEntregaTienda();
+      }
+    });
+  });
+})();
 
 // === ACTIVAR ARREGLO PERSONALIZADO ===
 document.getElementById("btnIrPersonalizado").addEventListener("click", () => {
@@ -666,7 +678,6 @@ document.addEventListener("DOMContentLoaded", () => {
   init();
   //setDefaultFechaHora(); 
 });
-
 
 
 // === ACTUALIZAR DOMICILIO ===
